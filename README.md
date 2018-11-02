@@ -1,6 +1,13 @@
 # Gift Cards
 
-Application of gift card payments at checkout
+## Context
+
+There are 2 gift card systems at play here:
+
+1. Vii gift cards (physical/digital)
+2. Shopify gift cards ("shadow gift card")
+
+Vii gift cards are what our customers use for payment online and in stores. However there is no implementation of Vii in Shopify, therefore we create a shopify gift card with the relevant amount whenever a customer enters the gift card at checkout.
 
 ## Current Mechanism
 
@@ -20,7 +27,7 @@ Gift card input is at payment step of checkout
 
 3. SHIP-Order will run a check balance of the Vii gift card with the CardNumber and PIN
 
-4. If Vii returns OK with the balance left on the Vii card, SHIP-Order will call out to Shopify's gift card API and generate a giftcard with a **randomised code** of balance depending on whether the Vii balance is less than the cart total (eg. 9h7f74e4ghf)
+4. If Vii returns OK with the balance left on the Vii card, SHIP-Order will call out to Shopify's Gift Card API and generate a giftcard with a **randomised code** of balance depending on whether the Vii balance is less than the cart total (eg. 9h7f74e4ghf)
 
 5. SHIP-Order will then return to the client the following:
 
@@ -34,7 +41,7 @@ Gift card input is at payment step of checkout
 
 6. On receipt of the SHIP-Order return, the last 4 digits of ShopifyGiftCardCode are sliced to be used as the key for LocalStorage
     1. These details are JSON stringified to store the following values in LS:
-        ```js
+        ```code
         4ghf:
         {
             AmountApplied,
@@ -45,6 +52,10 @@ Gift card input is at payment step of checkout
         }
         ```
     2. After values are stored, the ShopifyGiftCardCode is entered into a hidden shopify giftcard field in the DOM, and a form submit is triggered
+        ```js
+        // DOM input for Shopify giftcard
+        $('.main__content form input#checkout_reduction_code');
+        ```
     3. Page will refresh
     4. The page will load with the shopify giftcard set in the sidebar that shows the last 4 digits of the shopify giftcard code and the amount of the giftcard applied (varies automatically with the cart)
     5. We use these last 4 digits to query LocalStorage for the applied gift card details and display to customer
@@ -67,12 +78,17 @@ While the basic flow works, there are several issues affecting gift cards...
     - Current implementation is 1-pass only, any changes to cart total will render the gift card stale
     - Current work-around is to detect cart total change and clear the gift cards (jQuery)
 
-2. Hidden at checkout steps
+2. Applied GiftCard Info
+    - We currently generate a randomised code at checkout, of which Shopify displays the *last four* digits in several places:
+        - checkout steps (sidebar)
+        - order summary
+        - customer order (under accounts)
+        - maybe more?
+    - Shopify's Gift Card API allows us to specify what code to generate, perhaps it could be the last 4 digits of the Vii number and a bunch of unique identifiers pre-pended to it? (Shopify giftcard max length: 20)
+
+3. Hidden at checkout steps
     - Gift cards hidden at checkout steps (customer information & shipping)
     - Cart Total presented to customer modified (knock-on effects)
 
-3. Gift Card expenditure outside of Shopify
+4. Gift Card expenditure outside of Shopify
     - Vii gift card usage won't be reflected in Shopify (Shopify gift card retains same value)
-
-4. ???
-    - Usage alongside Paypal?
